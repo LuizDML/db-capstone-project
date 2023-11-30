@@ -117,8 +117,12 @@ CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`OrderDetails` (
   `OrderID` INT NOT NULL,
   `ItemID` INT NOT NULL,
   `Quantity` INT NOT NULL,
+  `Status` VARCHAR(45) NOT NULL,
+  `OrderTime` TIME NULL,
+  `e_ID` INT NOT NULL,
   INDEX `OrderID_idx` (`OrderID` ASC) VISIBLE,
   INDEX `ItemID_idx` (`ItemID` ASC) VISIBLE,
+  INDEX `EmployeeID_idx` (`e_ID` ASC) VISIBLE,
   CONSTRAINT `OrderID`
     FOREIGN KEY (`OrderID`)
     REFERENCES `LittleLemonDB`.`Orders` (`OrderID`)
@@ -128,58 +132,28 @@ CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`OrderDetails` (
     FOREIGN KEY (`ItemID`)
     REFERENCES `LittleLemonDB`.`Menu` (`ItemID`)
     ON DELETE NO ACTION
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `LittleLemonDB`.`Status`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Status` (
-  `o_ID` INT NOT NULL COMMENT 'OrdemID',
-  `i_ID` INT NOT NULL COMMENT 'ItemID',
-  `Status` VARCHAR(45) NOT NULL,
-  `OrderTime` TIME NOT NULL,
-  `ExpectedTime` TIME NOT NULL COMMENT 'Criar um trigger onde ele pega o tempo de preparo do item e soma com o horário da ordem.\n\nSelect s.OrderTime + m.PrepTime From Status AS s INNER JOIN Menu AS m WHERE s.ItemID = m.ItemID; ',
-  `e_ID` INT NOT NULL COMMENT 'EmployeeID',
-  INDEX `ItemID_idx` (`i_ID` ASC) VISIBLE,
-  INDEX `EmployeeID_idx` (`e_ID` ASC) VISIBLE,
-  INDEX `OrderID_idx` (`o_ID` ASC) VISIBLE,
-  CONSTRAINT `o_ID`
-    FOREIGN KEY (`o_ID`)
-    REFERENCES `LittleLemonDB`.`Orders` (`OrderID`)
-    ON DELETE NO ACTION
-    ON UPDATE CASCADE,
-  CONSTRAINT `i_ID`
-    FOREIGN KEY (`i_ID`)
-    REFERENCES `LittleLemonDB`.`Menu` (`ItemID`)
-    ON DELETE NO ACTION
     ON UPDATE CASCADE,
   CONSTRAINT `e_ID`
     FOREIGN KEY (`e_ID`)
     REFERENCES `LittleLemonDB`.`Employees` (`EmployeeID`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 USE `LittleLemonDB`;
 
 DELIMITER $$
 USE `LittleLemonDB`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `LittleLemonDB`.`OrderDetails_AFTER_INSERT` AFTER INSERT ON `OrderDetails` FOR EACH ROW
+CREATE DEFINER = CURRENT_USER TRIGGER `LittleLemonDB`.`OrderDetails_BEFORE_INSERT` BEFORE INSERT ON `OrderDetails` FOR EACH ROW
 BEGIN
-	SELECT m.Price INTO @pricevar FROM `LittleLemonDB`.`Menu` AS m INNER JOIN `LittleLemonDB`.`OrderDetails` AS od WHERE m.ItemID = od.ItemID; 
-    SELECT od.Quantity * @pricevar INTO @itemTotal FROM `LittleLemonDB`.`OrderDetails` AS od;
-    SELECT o.Total INTO @oldTotal FROM `LittleLemonDB`.`Orders` AS o INNER JOIN `LittleLemonDB`.`OrderDetails` AS od WHERE o.OrderID = od.OrderID;
-	INSERT INTO `LittleLemonDB`.`Orders` SET `LittleLemonDB`.`Orders`.`Total` = @itemTotal + @oldTotal; 
-    INSERT INTO `LittleLemonDB`.`Status` SET `LittleLemonDB`.`Status`.`OrderTime` = CURRENT_TIME();
-END$$
-
-USE `LittleLemonDB`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `LittleLemonDB`.`Status_BEFORE_INSERT` BEFORE INSERT ON `Status` FOR EACH ROW
-BEGIN
-	SELECT m.Preptime INTO @prepTime FROM `LittleLemonDB`.`Menu` AS m;
-    INSERT INTO `LittleLemonDB`.`Status` SET `LittleLemonDB`.`Orders`.`ExpectedTime` = New.ExpectedTime + @prePtime; 
+	SET New.OrderTime = CURRENT_TIME();
+    -- SET New.ExpectedTime = CURRENT_TIME() + (SELECT `LittleLemonDB`.`Menu`.`PrepTime` FROM `LittleLemonDB`.`Menu` WHERE `LittleLemonDB`.`Menu`.`ItemID` = `LittleLemonDB`.`OrderDetails`.`ItemID`);
+	-- SELECT m.Price INTO @pricevar FROM `LittleLemonDB`.`Menu` AS m INNER JOIN `LittleLemonDB`.`OrderDetails` AS od ON m.ItemID = od.ItemID WHERE m.ItemID = od.ItemID; 
+    -- SELECT od.Quantity * @pricevar INTO @itemTotal FROM `LittleLemonDB`.`OrderDetails` AS od;
+    -- SELECT o.Total INTO @oldTotal FROM `LittleLemonDB`.`Orders` AS o INNER JOIN `LittleLemonDB`.`OrderDetails` AS od ON o.OrderID = od.OrderID WHERE o.OrderID = od.OrderID;
+	-- INSERT INTO `LittleLemonDB`.`Orders` SET Total = @itemTotal + @oldTotal; 
+    -- INSERT INTO `LittleLemonDB`.`Orderdetails` SET OrderTime = CURRENT_TIME(), ExpectedTime = CURRENT_TIME() + (SELECT `LittleLemonDB`.`Menu`.`PrepTime` FROM `LittleLemonDB`.`Menu`);
+    -- INSERT INTO `LittleLemonDB`.`Orderdetails` SET ExpectedTime = CURRENT_TIME() + (SELECT `LittleLemonDB`.`Menu`.`PrepTime` FROM `LittleLemonDB`.`Menu`);
 END$$
 
 
