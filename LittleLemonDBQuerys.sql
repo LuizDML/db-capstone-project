@@ -172,7 +172,7 @@ VALUES
 (14, 2, '2023-12-01', '18:00:00', 2, 4, 1);
 UPDATE bookings SET bSlotTime = '19:00:00', TableNo = 6 WHERE BookingID = 14;
 
-DROP Procedure CheckBooking;
+DROP Procedure CheckBooking; -- aka ManageBooking
 
 DELIMITER // 
 CREATE PROCEDURE CheckBooking(DateInput DATE, TableID INT)
@@ -191,10 +191,10 @@ ALTER TABLE bookings MODIFY COLUMN Guests INT NOT NULL DEFAULT 2;
 ALTER TABLE bookings MODIFY COLUMN EmployeeID INT NOT NULL DEFAULT 5; 
 ALTER TABLE bookings MODIFY COLUMN bSlotTime TIME(0) NOT NULL DEFAULT '18:00:00';
 
--- DROP PROCEDURE AddValidBooking;
+-- DROP PROCEDURE AddBooking;
 
 DELIMITER // 
-CREATE PROCEDURE AddValidBooking(DateInput DATE, TableID INT, Customer INT)
+CREATE PROCEDURE AddBooking(DateInput DATE, TableID INT, Customer INT)
 BEGIN 
 	DECLARE booked TINYINT;
 	START TRANSACTION;
@@ -215,9 +215,7 @@ BEGIN
 END //
 DELIMITER ;
 
-CALL AddValidBooking('2023-12-03', 5, 3)
-
--- DROP PROCEDURE UpdateBooking;
+CALL AddBooking('2023-12-03', 5, 3);
 
 DELIMITER // 
 CREATE PROCEDURE UpdateBooking( B_ID INT, DateInput DATE, GuestsNo INT)
