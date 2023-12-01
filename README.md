@@ -10,7 +10,7 @@ Consider this when reviewing the code.
 
 To view the Entity-Relationship Diagram, click here or see the image below.
 
-![Diagram](./LittleLemon-ERDiagram.png)
+![Diagram](./images/LittleLemon-ERDiagram.png)
 
 ## Stored Procedures
 
@@ -136,3 +136,13 @@ CALL CancelBooking(13);
 
 ## Data Analysis with Tableau
 A Tableau workbook has been created, containing various charts and dashboards to facilitate data analysis. Download the workbook [here](./LittleLemon.twb)
+
+![Chart1](./images/twb01.png)
+
+![Chart2](./images/twb02.png)
+
+![Chart3](./images/twb03.png)
+
+![Chart4](./images/tbm04.png)
+
+![Dashboard](./images/twb05.png)
