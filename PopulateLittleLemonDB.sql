@@ -162,4 +162,123 @@ Insert into orders (OrderId, TableNo, BookingId, Total, PaymentType) Values (7, 
 SET @id = 7;
 CALL CancelOrder(@id);
 
--- 
+-- Semana 2 Exercício 2
+
+INSERT INTO bookings (BookingID, TableNo, bSlotDay, bSlotTime, Guests, EmployeeID, CustomerID) 
+VALUES
+(11, 5, '2023-12-01', '18:00:00', 2, 4, 1),
+(12, 3, '2023-12-01', '18:00:00', 2, 4, 1),
+(13, 2, '2023-12-01', '18:00:00', 2, 4, 1),
+(14, 2, '2023-12-01', '18:00:00', 2, 4, 1);
+UPDATE bookings SET bSlotTime = '19:00:00', TableNo = 6 WHERE BookingID = 14;
+
+DROP Procedure CheckBooking;
+
+DELIMITER // 
+CREATE PROCEDURE CheckBooking(DateInput DATE, TableID INT)
+BEGIN 
+	IF EXISTS (SELECT bookingID FROM bookings WHERE (bSlotDay = DateInput) AND (TableNo = TableID)) THEN
+        SELECT (CONCAT("There is already a boooking for ", DateInput, " on table ", TableID)) AS "Booking Status";
+    ELSE 
+		SELECT (CONCAT("There is no boooking for ", DateInput, " on table ", TableID)) AS "Booking Status";
+	END IF;
+END //
+DELIMITER ;
+
+CALL CheckBooking('2023-12-01', 6);
+
+ALTER TABLE bookings MODIFY COLUMN Guests INT NOT NULL DEFAULT 2;
+ALTER TABLE bookings MODIFY COLUMN EmployeeID INT NOT NULL DEFAULT 5; 
+ALTER TABLE bookings MODIFY COLUMN bSlotTime TIME(0) NOT NULL DEFAULT '18:00:00';
+
+-- DROP PROCEDURE AddValidBooking;
+
+DELIMITER // 
+CREATE PROCEDURE AddValidBooking(DateInput DATE, TableID INT, Customer INT)
+BEGIN 
+	DECLARE booked TINYINT;
+	START TRANSACTION;
+    IF NOT EXISTS (SELECT bookingID FROM bookings WHERE (bSlotDay = DateInput) AND (TableNo = TableID)) THEN
+        INSERT INTO bookings (TableNo, bSlotDay, CustomerID)
+		VALUES
+		(TableID, DateInput, Customer);
+		SELECT (CONCAT("Booking make for ", DateInput, " on table ", TableID)) AS "Booking Status";
+        SET booked = 1;
+	ELSE 
+		SELECT (CONCAT("There is already a boooking for ", DateInput, " on table ", TableID)) AS "Booking Status";
+        SET booked = 0;
+	END IF;
+    
+    IF booked = 1 THEN COMMIT;
+    ELSE ROLLBACK;
+    END IF;
+END //
+DELIMITER ;
+
+CALL AddValidBooking('2023-12-03', 5, 3)
+
+-- DROP PROCEDURE UpdateBooking;
+
+DELIMITER // 
+CREATE PROCEDURE UpdateBooking( B_ID INT, DateInput DATE, GuestsNo INT)
+BEGIN 
+	DECLARE updated TINYINT;
+	START TRANSACTION;
+    IF EXISTS (SELECT bookingID FROM bookings WHERE (B_ID = BookingID)) THEN
+        UPDATE bookings SET bSlotDay = DateInput, Guests = GuestsNo WHERE BookingID = B_ID;
+		SELECT (CONCAT("Booking ", B_ID, " updated")) AS "Booking Status";
+        SET updated = 1;
+	ELSE 
+		SELECT (CONCAT("Booking ", B_ID, " not found")) AS "Booking Status";
+        SET updated = 0;
+	END IF;
+    
+    IF updated = 1 THEN COMMIT;
+    ELSE ROLLBACK;
+    END IF;
+END //
+DELIMITER ;
+
+CALL UpdateBooking(7, '2023-12-04', 3)
+
+DELIMITER // 
+CREATE PROCEDURE CancelBooking(B_ID INT)
+BEGIN 
+	DECLARE deleted TINYINT;
+    DECLARE customer INT;
+	START TRANSACTION;
+    IF EXISTS (SELECT bookingID FROM bookings WHERE (BookingID = B_ID)) THEN
+		SELECT CustomerID INTO customer FROM bookings WHERE (BookingID = B_ID);
+        DELETE FROM bookings WHERE BookingID = B_ID;
+        INSERT INTO log (info) VALUES (CONCAT('Booking ', B_ID, ' canceled by customer ', customer));
+        SELECT info from log ORDER BY hora DESC LIMIT 1;
+        SET deleted = 1;
+	ELSE 
+		SELECT (CONCAT("Booking ", B_ID, " not found")) AS "Booking Status";
+        SET deleted = 0;
+	END IF;
+    
+    IF deleted = 1 THEN COMMIT;
+    ELSE ROLLBACK;
+    END IF;
+END //
+DELIMITER ;
+
+CALL CancelBooking(13);
+
+-- Função para preencher o Total : melhorar para um trigger no futuro
+
+DELIMITER //
+CREATE PROCEDURE GetTotal (O_ID INT)
+BEGIN
+	DECLARE O_Total INT;
+	SELECT Total INTO O_Total FROM  
+		(SELECT od.OrderID AS OrderID, SUM(m.Price * od.Quantity) AS Total FROM Orderdetails AS od
+		INNER JOIN menu as m ON m.ItemID = od.ItemID
+		GROUP BY od.OrderID) AS Gambiarra
+	WHERE OrderID = O_ID;
+    UPDATE orders SET Total = O_Total WHERE OrderID = O_ID;
+END // 
+DELIMITER ;
+
+CALL GetTotal (4);
